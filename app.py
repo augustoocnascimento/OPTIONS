@@ -1,45 +1,67 @@
-# app.py
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
 from payoff import total_payoff
 
-# Deve vir no topo!
-st.set_page_config(page_title="Simulador de Estratégias com Opções", layout="centered")
-st.title("📈 Visualizador de Estratégias com Opções")
+st.set_page_config(layout="wide")
+st.title("📊 Estratégias com Opções – Payoff Interativo")
 
-st.sidebar.header("📌 Configuração da Estratégia")
+st.sidebar.header("Configuração das Opções")
 
-# Define número de pernas (limitado a 2 no MVP)
-num_legs = st.sidebar.selectbox("Número de pernas (legs)", [1, 2], index=1)
+# Define intervalo de preços de mercado
+spot_min = st.sidebar.number_input("Preço mínimo do ativo", value=0.0)
+spot_max = st.sidebar.number_input("Preço máximo do ativo", value=200.0)
+spot_prices = np.linspace(spot_min, spot_max, 300)
 
-legs = []
-for i in range(num_legs):
-    st.sidebar.subheader(f"Perna {i+1}")
-    tipo = st.sidebar.selectbox(f"Tipo de opção {i+1}", ["Call", "Put"])
-    long = st.sidebar.radio(f"Posição {i+1}", ["Long", "Short"]) == "Long"
-    strike = st.sidebar.number_input(f"Strike {i+1}", min_value=0.0, value=100.0 + i*10)
-    premio = st.sidebar.number_input(f"Prêmio {i+1}", min_value=0.0, value=5.0)
+num_options = st.sidebar.slider("Número de opções na estratégia", 1, 4, 2)
 
-    legs.append({
-        "tipo": tipo,
+options = []
+for i in range(num_options):
+    st.sidebar.markdown(f"**Opção {i+1}**")
+    option_type = st.sidebar.selectbox("Tipo", ["Call", "Put"], key=f"type_{i}")
+    strike = st.sidebar.number_input("Strike", value=100.0, key=f"strike_{i}")
+    premium = st.sidebar.number_input("Prêmio", value=5.0, key=f"premium_{i}")
+    quantity = st.sidebar.number_input("Quantidade (positivo = comprado, negativo = vendido)", 
+                                       value=1, step=1, key=f"quantity_{i}")
+    options.append({
+        "type": option_type,
         "strike": strike,
-        "premio": premio,
-        "long": long
+        "premium": premium,
+        "quantity": quantity
     })
 
-# Preços simulados do ativo
-S = np.linspace(0.5 * min([leg["strike"] for leg in legs]),
-                1.5 * max([leg["strike"] for leg in legs]), 300)
+# Calcula payoff
+individual, total = total_payoff(options, spot_prices)
 
-payoff = total_payoff(S, legs)
-
-# Gráfico
+# Gera gráfico
 fig = go.Figure()
-fig.add_trace(go.Scatter(x=S, y=payoff, mode='lines', name='Payoff líquido', line=dict(width=3)))
-fig.update_layout(title="Gráfico de Payoff da Estratégia",
-                  xaxis_title="Preço do ativo no vencimento",
-                  yaxis_title="Lucro / Prejuízo",
-                  template="plotly_white")
+
+# Payoff de cada opção
+for i, payoff in enumerate(individual):
+    fig.add_trace(go.Scatter(
+        x=spot_prices, 
+        y=payoff, 
+        mode='lines', 
+        name=f"Opção {i+1}",
+        hovertemplate='Preço ativo: %{x:.2f}<br>Payoff: %{y:.2f}<extra></extra>'
+    ))
+
+# Payoff total
+fig.add_trace(go.Scatter(
+    x=spot_prices, 
+    y=total, 
+    mode='lines+markers', 
+    name="Payoff Total",
+    line=dict(width=4, dash='dash'),
+    hovertemplate='Preço ativo: %{x:.2f}<br>Total: %{y:.2f}<extra></extra>'
+))
+
+fig.update_layout(
+    title="Gráfico Interativo de Payoff",
+    xaxis_title="Preço do Ativo na Data de Vencimento",
+    yaxis_title="Payoff (R$)",
+    hovermode="x unified",
+    template="plotly_white"
+)
 
 st.plotly_chart(fig, use_container_width=True)

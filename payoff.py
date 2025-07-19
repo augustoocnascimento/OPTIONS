@@ -1,24 +1,27 @@
-# payoff.py
-import numpy as np
+def option_payoff(option_type, strike, premium, quantity, spot_prices):
+    """
+    Calcula o payoff de uma opção europeia.
+    """
+    if option_type == "Call":
+        payoff = [(max(spot - strike, 0) - premium) * quantity for spot in spot_prices]
+    elif option_type == "Put":
+        payoff = [(max(strike - spot, 0) - premium) * quantity for spot in spot_prices]
+    else:
+        raise ValueError("Tipo inválido: use 'Call' ou 'Put'")
+    return payoff
 
-def call_payoff(S, K, premium, long=True):
-    payoff = np.maximum(S - K, 0) - premium
-    return payoff if long else -payoff
+def total_payoff(options, spot_prices):
+    """
+    Soma os payoffs de várias opções.
+    """
+    total = [0] * len(spot_prices)
+    individual = []
 
-def put_payoff(S, K, premium, long=True):
-    payoff = np.maximum(K - S, 0) - premium
-    return payoff if long else -payoff
+    for opt in options:
+        payoff = option_payoff(
+            opt["type"], opt["strike"], opt["premium"], opt["quantity"], spot_prices
+        )
+        individual.append(payoff)
+        total = [t + p for t, p in zip(total, payoff)]
 
-def total_payoff(S, legs):
-    total = np.zeros_like(S)
-    for leg in legs:
-        tipo = leg["tipo"]
-        strike = leg["strike"]
-        premio = leg["premio"]
-        long = leg["long"]
-
-        if tipo == "Call":
-            total += call_payoff(S, strike, premio, long)
-        elif tipo == "Put":
-            total += put_payoff(S, strike, premio, long)
-    return total
+    return individual, total
