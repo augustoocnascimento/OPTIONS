@@ -3,6 +3,15 @@ import numpy as np
 import plotly.graph_objects as go
 from payoff import total_payoff
 
+
+
+import streamlit as st
+
+def render_payoff_page():
+    st.header("Payoff Interativo")
+    st.write("Esta é a página de payoff interativo.")
+
+
 def render_payoff_page():
     st.title("📊 Estratégias com Opções – Payoff Interativo")
 
