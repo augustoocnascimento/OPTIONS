@@ -1,67 +1,14 @@
 import streamlit as st
-import numpy as np
-import plotly.graph_objects as go
-from payoff import total_payoff
+from page.payoff_page import render_payoff_page
+from page.pricing_page import render_pricing_page
+
 
 st.set_page_config(layout="wide")
-st.title("📊 Estratégias com Opções – Payoff Interativo")
+st.title("Simulador de Opções - Menu Principal")
 
-st.sidebar.header("Configuração das Opções")
+page = st.sidebar.selectbox("Escolha a página", ["Payoff Interativo", "Precificação de Opções"])
 
-# Define intervalo de preços de mercado
-spot_min = st.sidebar.number_input("Preço mínimo do ativo", value=0.0)
-spot_max = st.sidebar.number_input("Preço máximo do ativo", value=200.0)
-spot_prices = np.linspace(spot_min, spot_max, 300)
-
-num_options = st.sidebar.slider("Número de opções na estratégia", 1, 4, 2)
-
-options = []
-for i in range(num_options):
-    st.sidebar.markdown(f"**Opção {i+1}**")
-    option_type = st.sidebar.selectbox("Tipo", ["Call", "Put"], key=f"type_{i}")
-    strike = st.sidebar.number_input("Strike", value=100.0, key=f"strike_{i}")
-    premium = st.sidebar.number_input("Prêmio", value=5.0, key=f"premium_{i}")
-    quantity = st.sidebar.number_input("Quantidade (positivo = comprado, negativo = vendido)", 
-                                       value=1, step=1, key=f"quantity_{i}")
-    options.append({
-        "type": option_type,
-        "strike": strike,
-        "premium": premium,
-        "quantity": quantity
-    })
-
-# Calcula payoff
-individual, total = total_payoff(options, spot_prices)
-
-# Gera gráfico
-fig = go.Figure()
-
-# Payoff de cada opção
-for i, payoff in enumerate(individual):
-    fig.add_trace(go.Scatter(
-        x=spot_prices, 
-        y=payoff, 
-        mode='lines', 
-        name=f"Opção {i+1}",
-        hovertemplate='Preço ativo: %{x:.2f}<br>Payoff: %{y:.2f}<extra></extra>'
-    ))
-
-# Payoff total
-fig.add_trace(go.Scatter(
-    x=spot_prices, 
-    y=total, 
-    mode='lines+markers', 
-    name="Payoff Total",
-    line=dict(width=4, dash='dash'),
-    hovertemplate='Preço ativo: %{x:.2f}<br>Total: %{y:.2f}<extra></extra>'
-))
-
-fig.update_layout(
-    title="Gráfico Interativo de Payoff",
-    xaxis_title="Preço do Ativo na Data de Vencimento",
-    yaxis_title="Payoff (R$)",
-    hovermode="x unified",
-    template="plotly_white"
-)
-
-st.plotly_chart(fig, use_container_width=True)
+if page == "Payoff Interativo":
+    render_payoff_page()
+elif page == "Precificação de Opções":
+    render_pricing_page()
